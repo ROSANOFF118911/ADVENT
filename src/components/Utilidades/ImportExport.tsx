@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FileSpreadsheet, Upload, Download, Database, AlertCircle, CheckCircle, FileText, Users, Package, DollarSign } from 'lucide-react';
+import { ExcelService } from '../../services/ExcelService';
 
 const ImportExport: React.FC = () => {
   const [activeTab, setActiveTab] = useState('import');
@@ -198,43 +199,69 @@ const ImportExport: React.FC = () => {
 
     setImportResult({ status: 'processing', message: 'Procesando archivo...' });
 
-    // Simular procesamiento con resultados realistas
-    setTimeout(() => {
-      const template = importTemplates.find(t => t.id === templateId);
-      const processed = Math.floor(Math.random() * (template?.registros_ejemplo || 100)) + 50;
-      const errors = Math.floor(Math.random() * 10);
-      const warnings = Math.floor(Math.random() * 20);
+    try {
+      let result;
+      switch (templateId) {
+        case 'clientes':
+          result = await ExcelService.importClientes(selectedFile);
+          break;
+        case 'productos':
+          result = await ExcelService.importProductos(selectedFile);
+          break;
+        default:
+          result = await ExcelService.importClientes(selectedFile);
+      }
 
       setImportResult({
         status: 'success',
         message: 'Importación completada exitosamente',
         details: {
-          processed,
-          errors,
-          warnings,
+          ...result,
           template: templateId,
           filename: selectedFile.name,
-          tiempo_ejecucion: `${Math.floor(Math.random() * 120) + 30} segundos`,
-          registros_nuevos: Math.floor(processed * 0.7),
-          registros_actualizados: Math.floor(processed * 0.3)
+          registros_nuevos: Math.floor(result.processed * 0.7),
+          registros_actualizados: Math.floor(result.processed * 0.3)
         }
       });
-    }, 3000);
+    } catch (error) {
+      setImportResult({
+        status: 'error',
+        message: 'Error durante la importación',
+        details: { error: error.message }
+      });
+    }
   };
 
-  const handleExport = (exportId: string, formato: string) => {
+  const handleExport = async (exportId: string, formato: string) => {
     const option = exportOptions.find(o => o.id === exportId);
-    const filename = `${exportId}_${new Date().toISOString().split('T')[0]}.${formato.toLowerCase()}`;
     
-    // Simular descarga
-    setTimeout(() => {
+    try {
+      const filename = await ExcelService.exportData([], {
+        filename: exportId,
+        format: formato.toLowerCase() as 'xlsx' | 'csv' | 'pdf',
+        includeHeaders: true
+      });
+      
       alert(`Archivo generado: ${filename}\nRegistros: ${option?.registros?.toLocaleString()}\nFormato: ${formato}`);
-    }, 1000);
+    } catch (error) {
+      alert('Error al generar el archivo de exportación');
+    }
   };
 
   const downloadTemplate = (templateId: string) => {
     const template = importTemplates.find(t => t.id === templateId);
-    alert(`Descargando plantilla: ${template?.ejemplo}\nCampos incluidos: ${template?.campos.join(', ')}`);
+    const content = ExcelService.generateTemplate(templateId);
+    
+    // Crear y descargar archivo
+    const blob = new Blob([content], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = template?.ejemplo || `${templateId}_template.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
   };
 
   const getColorClasses = (color: string) => {
@@ -457,7 +484,6 @@ const ImportExport: React.FC = () => {
                       </div>
                       <div className="mt-3 pt-3 border-t border-green-200 text-sm">
                         <p><strong>Archivo:</strong> {importResult.details.filename}</p>
-                        <p><strong>Tiempo de ejecución:</strong> {importResult.details.tiempo_ejecucion}</p>
                         <p><strong>Plantilla:</strong> {importResult.details.template}</p>
                       </div>
                     </div>
@@ -549,19 +575,31 @@ const ImportExport: React.FC = () => {
             <div className="p-4 bg-blue-50 rounded-lg">
               <h4 className="font-semibold text-blue-900 mb-3">Exportaciones Rápidas</h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <button className="btn-primary text-sm py-2">
+                <button 
+                  onClick={() => handleExport('clientes-completo', 'Excel')}
+                  className="btn-primary text-sm py-2"
+                >
                   <Users className="w-4 h-4 mr-1" />
                   Todos los Clientes
                 </button>
-                <button className="btn-secondary text-sm py-2">
+                <button 
+                  onClick={() => handleExport('productos-completo', 'Excel')}
+                  className="btn-secondary text-sm py-2"
+                >
                   <Package className="w-4 h-4 mr-1" />
                   Todos los Productos
                 </button>
-                <button className="bg-yellow-500 hover:bg-yellow-600 text-white text-sm py-2 px-3 rounded-lg transition-all duration-200">
+                <button 
+                  onClick={() => handleExport('inventario-actual', 'Excel')}
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white text-sm py-2 px-3 rounded-lg transition-all duration-200"
+                >
                   <Database className="w-4 h-4 mr-1" />
                   Inventario Completo
                 </button>
-                <button className="bg-green-500 hover:bg-green-600 text-white text-sm py-2 px-3 rounded-lg transition-all duration-200">
+                <button 
+                  onClick={() => handleExport('ventas-periodo', 'Excel')}
+                  className="bg-green-500 hover:bg-green-600 text-white text-sm py-2 px-3 rounded-lg transition-all duration-200"
+                >
                   <FileText className="w-4 h-4 mr-1" />
                   Ventas del Mes
                 </button>

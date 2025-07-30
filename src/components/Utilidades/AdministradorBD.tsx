@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Database, Download, Upload, RefreshCw, AlertTriangle, CheckCircle, HardDrive, Copy } from 'lucide-react';
+import { Database, Download, Upload, RefreshCw, AlertTriangle, CheckCircle, HardDrive, Copy, Zap } from 'lucide-react';
+import { DatabaseService } from '../../services/DatabaseService';
 
 const AdministradorBD: React.FC = () => {
   const [activeOperation, setActiveOperation] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [operationResult, setOperationResult] = useState<any>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const operaciones = [
     {
@@ -49,22 +51,22 @@ const AdministradorBD: React.FC = () => {
     },
     {
       id: 'create-structure',
-      nombre: 'Crear Estructura Completa',
+      nombre: 'Crear Estructura Completa ERP',
       descripcion: 'Crear toda la estructura ERP y poblar con datos iniciales',
-      icon: Database,
+      icon: Zap,
       color: 'green',
       peligroso: true
     }
   ];
 
-  const estadisticasBD = {
+  const [estadisticasBD, setEstadisticasBD] = useState({
     tamaño: '2.5 GB',
     tablas: 45,
     registros: 125430,
     ultimoRespaldo: '2024-01-15 14:30:00',
     version: 'MySQL 8.0.35',
     conexionesActivas: 12
-  };
+  });
 
   const handleExecuteOperation = (operationId: string) => {
     setActiveOperation(operationId);
@@ -75,31 +77,67 @@ const AdministradorBD: React.FC = () => {
   const executeOperation = async (operationId: string, params: any) => {
     setOperationResult({ status: 'processing', message: 'Ejecutando operación...' });
 
-    // Simular ejecución
-    setTimeout(() => {
-      if (operationId === 'create-structure') {
-        setOperationResult({
-          status: 'success',
-          message: 'Estructura ERP creada exitosamente',
-          details: {
-            tablas_creadas: 45,
-            registros_insertados: 1250,
-            tiempo_ejecucion: '2.5 minutos',
-            datos_demo: true
+    try {
+      let result;
+      
+      switch (operationId) {
+        case 'backup':
+          result = await DatabaseService.createBackup({
+            type: params.type || 'complete',
+            includeData: params.includeData !== false,
+            includeLogs: params.includeLogs || false,
+            compression: params.compression || false
+          });
+          break;
+          
+        case 'restore':
+          if (!selectedFile) {
+            throw new Error('Debe seleccionar un archivo de respaldo');
           }
-        });
-      } else {
-        setOperationResult({
-          status: 'success',
-          message: 'Operación completada exitosamente',
-          details: {
-            archivo_generado: operationId === 'backup' ? 'backup_2024-01-17.sql' : null,
-            tamaño_archivo: operationId === 'backup' ? '2.5 GB' : null,
-            tiempo_ejecucion: '45 segundos'
-          }
-        });
+          result = await DatabaseService.restoreBackup(selectedFile);
+          break;
+          
+        case 'clone':
+          result = await DatabaseService.cloneDatabase(params.newName || 'erp_clone');
+          break;
+          
+        case 'migrate':
+          result = await DatabaseService.migrateVersion(params.targetVersion || '3.0');
+          break;
+          
+        case 'optimize':
+          result = await DatabaseService.optimizeDatabase();
+          break;
+          
+        case 'create-structure':
+          result = await DatabaseService.createERPStructure(params);
+          break;
+          
+        default:
+          throw new Error('Operación no reconocida');
       }
-    }, 3000);
+
+      setOperationResult({
+        status: 'success',
+        message: result.message,
+        details: result
+      });
+
+      // Actualizar estadísticas después de operaciones exitosas
+      if (operationId === 'backup') {
+        setEstadisticasBD(prev => ({
+          ...prev,
+          ultimoRespaldo: new Date().toLocaleString()
+        }));
+      }
+      
+    } catch (error) {
+      setOperationResult({
+        status: 'error',
+        message: 'Error durante la operación',
+        details: { error: error.message }
+      });
+    }
   };
 
   const getColorClasses = (color: string) => {
@@ -244,7 +282,7 @@ const AdministradorBD: React.FC = () => {
       {/* Modal de Operación */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-screen overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-screen overflow-y-auto">
             <div className="p-6 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">
                 {operaciones.find(o => o.id === activeOperation)?.nombre}
@@ -306,7 +344,8 @@ const AdministradorBD: React.FC = () => {
                         </label>
                         <input
                           type="file"
-                          accept=".sql,.zip"
+                          accept=".sql,.zip,.gz"
+                          onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                         />
                       </div>
@@ -375,11 +414,13 @@ const AdministradorBD: React.FC = () => {
                           <input
                             type="text"
                             placeholder="Razón Social"
+                            defaultValue="Aluminios y Vidrios del Norte S.A. de C.V."
                             className="px-3 py-2 border border-gray-300 rounded-lg"
                           />
                           <input
                             type="text"
                             placeholder="RFC"
+                            defaultValue="AVN123456789"
                             className="px-3 py-2 border border-gray-300 rounded-lg"
                           />
                         </div>
@@ -497,14 +538,30 @@ const AdministradorBD: React.FC = () => {
                         <div className="bg-green-50 p-4 rounded-lg">
                           <h4 className="font-medium text-green-900 mb-2">Detalles de la Operación:</h4>
                           <div className="space-y-1 text-sm">
-                            {Object.entries(operationResult.details).map(([key, value]) => (
-                              <div key={key} className="flex justify-between">
-                                <span className="text-green-700 capitalize">{key.replace('_', ' ')}:</span>
-                                <span className="font-medium text-green-900">{value}</span>
-                              </div>
-                            ))}
+                            <div className="flex justify-between">
+                              <span className="text-green-700">Archivo:</span>
+                              <span className="font-medium text-green-900">{operationResult.details.filename}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-green-700">Tamaño:</span>
+                              <span className="font-medium text-green-900">{operationResult.details.size}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-green-700">Duración:</span>
+                              <span className="font-medium text-green-900">{operationResult.details.duration}</span>
+                            </div>
                           </div>
                         </div>
+                      )}
+                    </div>
+                  )}
+
+                  {operationResult.status === 'error' && (
+                    <div className="text-center py-4">
+                      <AlertTriangle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+                      <p className="text-lg font-medium text-red-900">{operationResult.message}</p>
+                      {operationResult.details?.error && (
+                        <p className="text-sm text-red-700 mt-2">{operationResult.details.error}</p>
                       )}
                     </div>
                   )}
@@ -518,6 +575,7 @@ const AdministradorBD: React.FC = () => {
                   setShowModal(false);
                   setOperationResult(null);
                   setActiveOperation('');
+                  setSelectedFile(null);
                 }}
                 className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >

@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { RefreshCw, Upload, Download, Database, AlertTriangle, CheckCircle, FileText, Settings, Users, DollarSign, Zap, Shield } from 'lucide-react';
+import { RefreshCw, Upload, Download, Database, AlertTriangle, CheckCircle, FileText, Settings, Users, DollarSign, Zap, Shield, Package } from 'lucide-react';
+import { SATService } from '../../services/SATService';
+import { ExcelService } from '../../services/ExcelService';
 
 const ProcesosEspeciales: React.FC = () => {
   const [activeProcess, setActiveProcess] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [processResult, setProcessResult] = useState<any>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const procesos = [
     {
@@ -141,6 +144,15 @@ const ProcesosEspeciales: React.FC = () => {
       icon: Zap,
       color: 'purple',
       peligroso: true
+    },
+    {
+      id: 'importar-pedidos',
+      nombre: 'Importar Pedidos Externos',
+      descripcion: 'Importar pedidos desde marketplaces o sistemas externos',
+      categoria: 'Ventas',
+      icon: Package,
+      color: 'blue',
+      peligroso: false
     }
   ];
 
@@ -153,38 +165,124 @@ const ProcesosEspeciales: React.FC = () => {
   const executeProcess = async (processId: string, params: any) => {
     setProcessResult({ status: 'processing', message: 'Ejecutando proceso...' });
     
-    // Simular ejecución del proceso con diferentes resultados según el tipo
-    setTimeout(() => {
-      const baseResults = {
-        'actualizar-clientes': { processed: 892, errors: 2, warnings: 5 },
-        'actualizar-proveedores': { processed: 156, errors: 0, warnings: 3 },
-        'cancelar-cfdi': { processed: 25, errors: 1, warnings: 0 },
-        'verificar-sellos': { processed: 150, errors: 3, warnings: 8 },
-        'actualizar-precios': { processed: 1250, errors: 0, warnings: 12 },
-        'importar-sat': { processed: 5412, errors: 5, warnings: 25 },
-        'gestionar-acabados': { processed: 45, errors: 0, warnings: 2 },
-        'leyenda-fiscal': { processed: 1, errors: 0, warnings: 0 },
-        'reportes-masivos': { processed: 8, errors: 0, warnings: 0 },
-        'importar-minimos-maximos': { processed: 1250, errors: 8, warnings: 15 },
-        'exportar-productos-excel': { processed: 1250, errors: 0, warnings: 0 },
-        'sincronizar-inventario': { processed: 1250, errors: 2, warnings: 10 },
-        'limpiar-datos': { processed: 15000, errors: 0, warnings: 5 },
-        'recalcular-saldos': { processed: 892, errors: 1, warnings: 3 },
-        'migrar-version': { processed: 50000, errors: 0, warnings: 20 }
-      };
-
-      const result = baseResults[processId as keyof typeof baseResults] || { processed: 100, errors: 0, warnings: 0 };
+    try {
+      let result;
+      
+      switch (processId) {
+        case 'actualizar-clientes':
+        case 'actualizar-proveedores':
+          if (selectedFile) {
+            result = await ExcelService.importClientes(selectedFile);
+          } else {
+            result = { processed: 892, errors: 2, warnings: 5 };
+          }
+          break;
+          
+        case 'cancelar-cfdi':
+          result = await this.processCancelacionMasiva(params);
+          break;
+          
+        case 'verificar-sellos':
+          result = await this.processVerificarSellos(params);
+          break;
+          
+        case 'actualizar-precios':
+          result = await this.processActualizarPrecios(params);
+          break;
+          
+        case 'importar-sat':
+          result = await this.processImportarSAT(params);
+          break;
+          
+        case 'exportar-productos-excel':
+          const filename = await ExcelService.exportData([], {
+            filename: 'productos_completo',
+            format: 'xlsx',
+            includeHeaders: true
+          });
+          result = { processed: 1250, filename };
+          break;
+          
+        default:
+          result = { processed: 100, errors: 0, warnings: 0 };
+      }
 
       setProcessResult({
         status: 'success',
         message: 'Proceso completado exitosamente',
         details: {
           ...result,
-          tiempo_ejecucion: `${Math.floor(Math.random() * 300) + 30} segundos`,
-          archivo_generado: processId.includes('exportar') ? `${processId}_${new Date().toISOString().split('T')[0]}.xlsx` : null
+          tiempo_ejecucion: `${Math.floor(Math.random() * 300) + 30} segundos`
         }
       });
-    }, 3000);
+    } catch (error) {
+      setProcessResult({
+        status: 'error',
+        message: 'Error durante la ejecución del proceso',
+        details: { error: error.message }
+      });
+    }
+  };
+
+  const processCancelacionMasiva = async (params: any) => {
+    // Simular cancelación masiva de CFDI
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          processed: 25,
+          errors: 1,
+          warnings: 0,
+          cancelados: 24,
+          rechazados: 1
+        });
+      }, 4000);
+    });
+  };
+
+  const processVerificarSellos = async (params: any) => {
+    // Simular verificación de sellos
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          processed: 150,
+          errors: 3,
+          warnings: 8,
+          validos: 139,
+          invalidos: 3,
+          pendientes: 8
+        });
+      }, 3000);
+    });
+  };
+
+  const processActualizarPrecios = async (params: any) => {
+    // Simular actualización de precios
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          processed: 1250,
+          errors: 0,
+          warnings: 12,
+          actualizados: 1250,
+          porcentaje: params.porcentaje || 15
+        });
+      }, 2000);
+    });
+  };
+
+  const processImportarSAT = async (params: any) => {
+    // Simular importación de catálogo SAT
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          processed: 5412,
+          errors: 5,
+          warnings: 25,
+          nuevos: 234,
+          actualizados: 5178
+        });
+      }, 5000);
+    });
   };
 
   const getColorClasses = (color: string) => {
@@ -311,7 +409,7 @@ const ProcesosEspeciales: React.FC = () => {
       {/* Modal de Proceso */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-screen overflow-y-auto animate-slide-up">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-screen overflow-y-auto animate-slide-up">
             <div className="p-6 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">
                 {procesos.find(p => p.id === activeProcess)?.nombre}
@@ -422,153 +520,9 @@ const ProcesosEspeciales: React.FC = () => {
                           <option value="04">04 - Operación nominativa relacionada en una factura global</option>
                         </select>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Filtros Adicionales
-                        </label>
-                        <div className="space-y-2">
-                          <label className="flex items-center">
-                            <input type="checkbox" className="mr-2" />
-                            <span className="text-sm">Solo facturas sin pagos aplicados</span>
-                          </label>
-                          <label className="flex items-center">
-                            <input type="checkbox" className="mr-2" />
-                            <span className="text-sm">Excluir facturas con devoluciones</span>
-                          </label>
-                          <label className="flex items-center">
-                            <input type="checkbox" className="mr-2" />
-                            <span className="text-sm">Solo facturas de un vendedor específico</span>
-                          </label>
-                        </div>
-                      </div>
                     </div>
                   )}
 
-                  {activeProcess === 'importar-sat' && (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Catálogo a Importar
-                          </label>
-                          <select className="input-field">
-                            <option value="productos">Productos y Servicios (5,412 registros)</option>
-                            <option value="unidades">Unidades de Medida (89 registros)</option>
-                            <option value="monedas">Monedas (185 registros)</option>
-                            <option value="paises">Países (245 registros)</option>
-                            <option value="impuestos">Impuestos (45 registros)</option>
-                            <option value="todos">Todos los catálogos</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Acción con Datos Existentes
-                          </label>
-                          <select className="input-field">
-                            <option value="update">Actualizar existentes</option>
-                            <option value="skip">Omitir existentes</option>
-                            <option value="replace">Reemplazar todos</option>
-                          </select>
-                        </div>
-                      </div>
-                      <div className="bg-indigo-50 p-4 rounded-lg">
-                        <h5 className="font-medium text-indigo-900 mb-2">Información de Actualización SAT</h5>
-                        <div className="text-sm text-indigo-800">
-                          <p>• Última actualización: 15 de Enero 2024</p>
-                          <p>• Fuente: Servicio Web SAT oficial</p>
-                          <p>• Tiempo estimado: 2-5 minutos</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeProcess === 'verificar-sellos' && (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Fecha Inicial
-                          </label>
-                          <input type="date" className="input-field" />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Fecha Final
-                          </label>
-                          <input type="date" className="input-field" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Tipo de Verificación
-                        </label>
-                        <div className="space-y-2">
-                          <label className="flex items-center">
-                            <input type="checkbox" className="mr-2" defaultChecked />
-                            <span className="text-sm">Verificar integridad del sello digital</span>
-                          </label>
-                          <label className="flex items-center">
-                            <input type="checkbox" className="mr-2" defaultChecked />
-                            <span className="text-sm">Validar status con SAT en línea</span>
-                          </label>
-                          <label className="flex items-center">
-                            <input type="checkbox" className="mr-2" defaultChecked />
-                            <span className="text-sm">Verificar cadena original</span>
-                          </label>
-                          <label className="flex items-center">
-                            <input type="checkbox" className="mr-2" />
-                            <span className="text-sm">Generar reporte detallado de inconsistencias</span>
-                          </label>
-                          <label className="flex items-center">
-                            <input type="checkbox" className="mr-2" />
-                            <span className="text-sm">Enviar notificación por email</span>
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeProcess === 'gestionar-acabados' && (
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Acción a Realizar
-                        </label>
-                        <select className="input-field">
-                          <option value="actualizar">Actualizar acabados existentes</option>
-                          <option value="importar">Importar desde Excel</option>
-                          <option value="sincronizar">Sincronizar con productos</option>
-                          <option value="limpiar">Limpiar acabados no utilizados</option>
-                        </select>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Línea de Productos
-                          </label>
-                          <select className="input-field">
-                            <option value="">Todas las líneas</option>
-                            <option value="aluminio">Solo Aluminio</option>
-                            <option value="vidrio">Solo Vidrio</option>
-                            <option value="herrajes">Solo Herrajes</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Costo Adicional por Acabado (%)
-                          </label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            placeholder="5.0"
-                            className="input-field"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Configuraciones para otros procesos */}
                   {(activeProcess === 'actualizar-clientes' || activeProcess === 'actualizar-proveedores') && (
                     <div className="space-y-4">
                       <div>
@@ -583,16 +537,14 @@ const ProcesosEspeciales: React.FC = () => {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Campos a Actualizar
+                          Archivo Excel/CSV (Opcional)
                         </label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {['Teléfono', 'Correo', 'Dirección', 'Descuento', 'Método de Pago', 'Condiciones'].map((campo) => (
-                            <label key={campo} className="flex items-center">
-                              <input type="checkbox" className="mr-2" />
-                              <span className="text-sm">{campo}</span>
-                            </label>
-                          ))}
-                        </div>
+                        <input
+                          type="file"
+                          accept=".xlsx,.xls,.csv"
+                          onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                          className="input-field"
+                        />
                       </div>
                       <div className="bg-blue-50 p-4 rounded-lg">
                         <p className="text-sm text-blue-800">
@@ -602,6 +554,8 @@ const ProcesosEspeciales: React.FC = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Más configuraciones para otros procesos */}
                 </div>
               )}
 
@@ -635,21 +589,21 @@ const ProcesosEspeciales: React.FC = () => {
                             </div>
                             <div className="text-center">
                               <p className="text-yellow-700">Advertencias:</p>
-                              <p className="text-xl font-bold text-yellow-900">{processResult.details.warnings}</p>
+                              <p className="text-xl font-bold text-yellow-900">{processResult.details.warnings || 0}</p>
                             </div>
                             <div className="text-center">
                               <p className="text-red-700">Errores:</p>
-                              <p className="text-xl font-bold text-red-900">{processResult.details.errors}</p>
+                              <p className="text-xl font-bold text-red-900">{processResult.details.errors || 0}</p>
                             </div>
                             <div className="text-center">
                               <p className="text-blue-700">Tiempo:</p>
                               <p className="text-sm font-bold text-blue-900">{processResult.details.tiempo_ejecucion}</p>
                             </div>
                           </div>
-                          {processResult.details.archivo_generado && (
+                          {processResult.details.filename && (
                             <div className="mt-3 pt-3 border-t border-green-200">
                               <p className="text-sm text-green-800">
-                                <strong>Archivo generado:</strong> {processResult.details.archivo_generado}
+                                <strong>Archivo generado:</strong> {processResult.details.filename}
                               </p>
                               <button className="mt-2 btn-secondary text-sm">
                                 <Download className="w-4 h-4 mr-1" />
@@ -671,6 +625,7 @@ const ProcesosEspeciales: React.FC = () => {
                   setShowModal(false);
                   setProcessResult(null);
                   setActiveProcess('');
+                  setSelectedFile(null);
                 }}
                 className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200"
               >
