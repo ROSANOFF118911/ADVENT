@@ -44,18 +44,18 @@ const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex items-center justify-between">
           {!collapsed && (
             <div className="flex items-center space-x-3">
-              <div className="bg-blue-600 w-8 h-8 rounded-lg flex items-center justify-center">
+              <div className="bg-primary w-8 h-8 rounded-lg flex items-center justify-center animate-pulse">
                 <Building2 className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="font-bold text-gray-900">ERP Aluminio</h2>
-                <p className="text-xs text-gray-500">Sistema Integral</p>
+                <h2 className="font-bold text-gray-900">ERP Nube</h2>
+                <p className="text-xs text-gray-500">Aluminio/Vidrio</p>
               </div>
             </div>
           )}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-1 rounded-lg hover:bg-gray-100 transition-all duration-200"
           >
             {collapsed ? (
               <ChevronRight className="w-5 h-5 text-gray-600" />
@@ -77,10 +77,10 @@ const Sidebar: React.FC<SidebarProps> = ({
               <li key={item.id}>
                 <button
                   onClick={() => setActiveModule(item.id)}
-                  className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-all ${
+                  className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-300 ${
                     isActive
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary text-white shadow-lg transform scale-105'
+                      : 'text-gray-700 hover:bg-gray-100 hover:transform hover:scale-102'
                   }`}
                 >
                   <Icon className="w-5 h-5" />

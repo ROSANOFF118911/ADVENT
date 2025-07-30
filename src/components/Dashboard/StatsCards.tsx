@@ -62,7 +62,7 @@ const StatsCards: React.FC = () => {
         const TrendIcon = stat.trend === 'up' ? TrendingUp : TrendingDown;
         
         return (
-          <div key={index} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+          <div key={index} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 card-hover animate-fade-in">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
@@ -70,7 +70,7 @@ const StatsCards: React.FC = () => {
                 <div className={`flex items-center mt-2 text-sm ${
                   stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  <TrendIcon className="w-4 h-4 mr-1" />
+                  <TrendIcon className="w-4 h-4 mr-1 animate-bounce" />
                   {stat.change}
                 </div>
               </div>
