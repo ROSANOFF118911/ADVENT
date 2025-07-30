@@ -70,6 +70,30 @@ const ProcesosEspeciales: React.FC = () => {
       categoria: 'Facturación',
       icon: FileText,
       color: 'blue'
+    },
+    {
+      id: 'gestionar-acabados',
+      nombre: 'Gestionar Acabados de Productos',
+      descripcion: 'Actualización masiva de acabados y colores',
+      categoria: 'Productos',
+      icon: Settings,
+      color: 'purple'
+    },
+    {
+      id: 'importar-minimos-maximos',
+      nombre: 'Importar Mínimos/Máximos',
+      descripcion: 'Actualizar niveles de inventario desde Excel',
+      categoria: 'Inventario',
+      icon: Upload,
+      color: 'green'
+    },
+    {
+      id: 'exportar-productos-excel',
+      nombre: 'Exportar Productos a Excel',
+      descripcion: 'Exportar catálogo completo con precios y existencias',
+      categoria: 'Productos',
+      icon: Download,
+      color: 'blue'
     }
   ];
 

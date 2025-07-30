@@ -48,6 +48,20 @@ const ImportExport: React.FC = () => {
       descripcion: 'Importar pedidos desde sistemas externos',
       campos: ['cliente_rfc', 'fecha_entrega', 'productos', 'cantidades', 'precios'],
       ejemplo: 'pedidos_template.xlsx'
+    },
+    {
+      id: 'minimos-maximos',
+      nombre: 'Mínimos y Máximos',
+      descripcion: 'Actualizar niveles de inventario mínimos y máximos',
+      campos: ['codigo', 'stock_min', 'stock_max', 'punto_reorden'],
+      ejemplo: 'minimos_maximos_template.xlsx'
+    },
+    {
+      id: 'acabados',
+      nombre: 'Acabados de Productos',
+      descripcion: 'Importar acabados y colores disponibles',
+      campos: ['nombre', 'descripcion', 'color', 'tipo', 'costo_adicional'],
+      ejemplo: 'acabados_template.xlsx'
     }
   ];
 
