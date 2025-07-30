@@ -7,6 +7,7 @@ import {
   ShoppingCart, 
   FileText, 
   Settings,
+  Wrench,
   ChevronLeft,
   ChevronRight,
   Building2
@@ -33,6 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'ventas', label: 'Ventas', icon: ShoppingCart },
     { id: 'compras', label: 'Compras', icon: FileText },
     { id: 'configuracion', label: 'Configuración', icon: Settings },
+    { id: 'utilidades', label: 'Utilerías', icon: Wrench },
   ];
 
   return (

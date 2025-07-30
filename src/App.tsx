@@ -8,6 +8,7 @@ import Inventario from './components/Inventario/Inventario';
 import Ventas from './components/Ventas/Ventas';
 import Compras from './components/Compras/Compras';
 import Configuracion from './components/Configuracion/Configuracion';
+import Utilidades from './components/Utilidades/Utilidades';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './components/Auth/Login';
 
@@ -36,6 +37,8 @@ function AppContent() {
         return <Compras />;
       case 'configuracion':
         return <Configuracion />;
+      case 'utilidades':
+        return <Utilidades />;
       default:
         return <Dashboard />;
     }
